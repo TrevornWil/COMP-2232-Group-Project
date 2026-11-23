@@ -30,7 +30,18 @@ public class Evaluations {
                 }
             }
 
-            if (Character.isDigit(currentChar) || currentChar == '.' || isNegativeSign) {
+            if (currentChar == '-' && currentNumber.matches("[0-9.]+[eE]")) {
+                isNegativeSign = true;
+            }
+            if (currentChar == '+' && currentNumber.matches("[0-9.]+[eE]")) {
+                isNegativeSign = true;
+            }
+
+            boolean isExponent = (currentChar == 'e' || currentChar == 'E')
+                && currentNumber.matches("[0-9.]+");
+
+            if (Character.isDigit(currentChar) || currentChar == '.' ||
+                isExponent || isNegativeSign) {
                 currentNumber = currentNumber + currentChar;
             } else {
                 if (!currentNumber.equals("")) {

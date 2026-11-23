@@ -1,9 +1,17 @@
+// Students
+// Daniel Phillips - 500002913
+// Kessia Paul - 500002400
+// Reanna Christopher - 500002956
+// Tarique K. Browne - 500001112
+// Trevorn Williams - 500002032
+
 package Final_Project;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class ScientificCalculator extends JFrame {
 
@@ -11,6 +19,8 @@ public class ScientificCalculator extends JFrame {
     private JTextField display;
     private Evaluations evaluator;
     private CalculatorExtras extras;
+    private final HashMap<String, JButton> scientificButtons = new HashMap<String, JButton>();
+    private final HashMap<String, JButton> modeButtons = new HashMap<String, JButton>();
 
     private String expression = "";
 
@@ -91,11 +101,22 @@ public class ScientificCalculator extends JFrame {
                 button.setBackground(new Color(74, 79, 88));
             }
 
-            button.addActionListener(e -> buttonClick(text)); //Recheck
+            if (text.equals("sin") || text.equals("ln") ||
+                text.equals("cos") || text.equals("log") ||
+                text.equals("tan") || text.equals("√") ||
+                text.equals("x²") || text.equals("Ans")) {
+                scientificButtons.put(text, button);
+            }
+            if (text.equals("Inv") || text.equals("Rad") || text.equals("Deg")) {
+                modeButtons.put(text, button);
+            }
+
+            button.addActionListener(e -> buttonClick(((JButton) e.getSource()).getText()));
 
             buttonPanel.add(button);
         }
 
+        updateModeColors();
         add(buttonPanel, BorderLayout.CENTER);
 
         getContentPane().setBackground(new Color(30, 32, 38));
@@ -114,7 +135,7 @@ public class ScientificCalculator extends JFrame {
     // CALCULATION METHODS/FORMULAS
     
     // true = Rad, false = Deg
-    private boolean radiansMode = true;
+    private boolean radiansMode = false;
 
     // false = normal, true = Inv
     private boolean inverseMode = false;
@@ -138,6 +159,37 @@ public class ScientificCalculator extends JFrame {
     public boolean toggleInverseMode() {
         inverseMode = !inverseMode;
         return inverseMode;
+    }
+
+    private void updateInverseButtons() {
+        if (inverseMode) {
+            scientificButtons.get("sin").setText("sin\u207b\u00b9");
+            scientificButtons.get("ln").setText("e\u02e3");
+            scientificButtons.get("cos").setText("cos\u207b\u00b9");
+            scientificButtons.get("log").setText("10\u02e3");
+            scientificButtons.get("tan").setText("tan\u207b\u00b9");
+            scientificButtons.get("√").setText("\u02b8\u221ax");
+            scientificButtons.get("x²").setText("\u02e3\u221ax");
+            scientificButtons.get("Ans").setText("Rnd");
+        } else {
+            scientificButtons.get("sin").setText("sin");
+            scientificButtons.get("ln").setText("ln");
+            scientificButtons.get("cos").setText("cos");
+            scientificButtons.get("log").setText("log");
+            scientificButtons.get("tan").setText("tan");
+            scientificButtons.get("√").setText("\u221a");
+            scientificButtons.get("x²").setText("x\u00b2");
+            scientificButtons.get("Ans").setText("Ans");
+        }
+    }
+
+    private void updateModeColors() {
+        modeButtons.get("Inv").setBackground(
+            inverseMode ? new Color(130, 136, 145) : new Color(74, 79, 88));
+        modeButtons.get("Rad").setBackground(
+            radiansMode ? new Color(130, 136, 145) : new Color(74, 79, 88));
+        modeButtons.get("Deg").setBackground(
+            radiansMode ? new Color(74, 79, 88) : new Color(130, 136, 145));
     }
 
     public double pi() {
@@ -483,7 +535,18 @@ public class ScientificCalculator extends JFrame {
                     }
                 }
 
-                if (Character.isDigit(currentChar) || currentChar == '.' || isNegativeSign) {
+                if (currentChar == '-' && currentNumber.matches("[0-9.]+[eE]")) {
+                    isNegativeSign = true;
+                }
+                if (currentChar == '+' && currentNumber.matches("[0-9.]+[eE]")) {
+                    isNegativeSign = true;
+                }
+
+                boolean isExponent = (currentChar == 'e' || currentChar == 'E')
+                    && currentNumber.matches("[0-9.]+");
+
+                if (Character.isDigit(currentChar) || currentChar == '.' ||
+                    isExponent || isNegativeSign) {
                     currentNumber = currentNumber + currentChar;
                 } else {
                     if (!currentNumber.equals("")) {
@@ -587,6 +650,69 @@ public class ScientificCalculator extends JFrame {
     }
 
     // OPERATE CALCULATOR
+    private double evaluateCurrentExpression() {
+        if (expression.isEmpty()) {
+            return Double.parseDouble(display.getText());
+        }
+        return evaluator.evaluate(expression);
+    }
+
+    private void applyUnaryResult(String operation, double value) {
+        double result;
+
+        switch (operation) {
+            case "sin":
+                result = trigSin(value);
+                break;
+            case "cos":
+                result = trigCos(value);
+                break;
+            case "tan":
+                result = trigTan(value);
+                break;
+            case "ln":
+                result = inverseMode ? Math.exp(value) : Math.log(value);
+                break;
+            case "log":
+                result = inverseMode ? Math.pow(10.0, value) : Math.log10(value);
+                break;
+            case "√":
+            case "ʸ√x":
+                result = inverseMode ? sqr(value) : sqrt(value);
+                break;
+            case "x²":
+            case "ˣ√x":
+                result = inverseMode ? Math.sqrt(value) : sqr(value);
+                break;
+            case "sin⁻¹":
+                result = asin(value);
+                break;
+            case "cos⁻¹":
+                result = acos(value);
+                break;
+            case "tan⁻¹":
+                result = atan(value);
+                break;
+            case "eˣ":
+                result = Math.exp(value);
+                break;
+            case "10ˣ":
+                result = Math.pow(10.0, value);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported operation");
+        }
+
+        if (Double.isNaN(result) || Double.isInfinite(result)) {
+            throw new ArithmeticException("Invalid mathematical result");
+        }
+
+        String answer = CalculatorExtras.format(result);
+        extras.recordCalculation(operation + "(" + CalculatorExtras.format(value) + ")", answer);
+        display.setText(answer);
+        expression = answer;
+    }
+
     public void buttonClick(String button) {
 
         try {
@@ -595,12 +721,14 @@ public class ScientificCalculator extends JFrame {
             if (button.equals("Rad")) {
                 radiansMode = true;
                 display.setText("Rad Mode");
+                updateModeColors();
                 return;
             }
 
             if (button.equals("Deg")) {
                 radiansMode = false;
                 display.setText("Deg Mode");
+                updateModeColors();
                 return;
             }
 
@@ -608,6 +736,8 @@ public class ScientificCalculator extends JFrame {
             if (button.equals("Inv")) {
                 inverseMode = !inverseMode;
                 display.setText(inverseMode ? "Inv Mode" : "Normal Mode");
+                updateInverseButtons();
+                updateModeColors();
                 return;
             }
 
@@ -647,6 +777,49 @@ public class ScientificCalculator extends JFrame {
                 return;
             }
 
+            if (button.equals("e")) {
+                expression += String.valueOf(Math.E);
+                display.setText(expression);
+                return;
+            }
+
+            if (button.equals("x!")) {
+                double value = evaluateCurrentExpression();
+                if (value < 0.0 || value != Math.rint(value) || value > 170.0) {
+                    throw new ArithmeticException("Invalid factorial");
+                }
+
+                double result = 1.0;
+                for (int i = 2; i <= (int) value; i++) {
+                    result *= i;
+                }
+
+                String answer = CalculatorExtras.format(result);
+                extras.recordCalculation(CalculatorExtras.format(value) + "!", answer);
+                display.setText(answer);
+                expression = answer;
+                return;
+            }
+
+            if (button.equals("%")) {
+                double value = evaluateCurrentExpression();
+                String answer = CalculatorExtras.format(value / 100.0);
+                extras.recordCalculation(CalculatorExtras.format(value) + "%", answer);
+                display.setText(answer);
+                expression = answer;
+                return;
+            }
+
+            if (button.equals("EXP")) {
+                if (!expression.isEmpty()) {
+                    expression += "e";
+                } else {
+                    expression = "1e";
+                }
+                display.setText(expression);
+                return;
+            }
+
             // Equals button
             if (button.equals("=")) {
 
@@ -674,22 +847,15 @@ public class ScientificCalculator extends JFrame {
                 return;
             }
 
-            // Unsupported operations
-            if (button.equals("sin") ||
-                button.equals("cos") ||
-                button.equals("tan") ||
-                button.equals("ln") ||
-                button.equals("log") ||
-                button.equals("√") ||
-                button.equals("x²") ||
-                button.equals("%") ||
-                button.equals("EXP")) {
+            if (button.equals("sin") || button.equals("cos") ||
+                button.equals("tan") || button.equals("ln") ||
+                button.equals("log") || button.equals("√") ||
+                button.equals("x²") || button.equals("sin⁻¹") ||
+                button.equals("cos⁻¹") || button.equals("tan⁻¹") ||
+                button.equals("eˣ") || button.equals("10ˣ") ||
+                button.equals("ʸ√x") || button.equals("ˣ√x")) {
 
-                showWarning(
-                    "This mathematical operation has not yet " +
-                    "been implemented."
-                );
-
+                applyUnaryResult(button, evaluateCurrentExpression());
                 return;
             }
 

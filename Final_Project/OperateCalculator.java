@@ -1,3 +1,10 @@
+// Students
+// Daniel Phillips - 500002913
+// Kessia Paul - 500002400
+// Reanna Christopher - 500002956
+// Tarique K. Browne - 500001112
+// Trevorn Williams - 500002032
+
 package Final_Project;
 
 import javax.swing.SwingUtilities;
