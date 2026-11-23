@@ -39,12 +39,19 @@ public class ScientificCalculator extends JFrame {
         JPanel displayPanel = new JPanel(new BorderLayout(5, 0));
         displayPanel.setBackground(new Color(45, 48, 58));
 
-        JButton historyButton = new JButton("History");
-        historyButton.setFont(new Font("Arial", Font.BOLD, 12));
+        ImageIcon historyIcon = new ImageIcon("Final_Project/icon/history_icon.png");
+        if (historyIcon.getImageLoadStatus() == MediaTracker.COMPLETE) {
+            Image scaledHistoryIcon = historyIcon.getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH);
+            historyIcon = new ImageIcon(scaledHistoryIcon);
+        }
+
+        JButton historyButton = new JButton(historyIcon);
+        historyButton.setToolTipText("History");
+        historyButton.setPreferredSize(new Dimension(45, 45));
         historyButton.setForeground(Color.WHITE);
-        historyButton.setBackground(new Color(130, 136, 145));
-        historyButton.setOpaque(true);
-        historyButton.setContentAreaFilled(true);
+        historyButton.setBackground(new Color(45, 48, 58));
+        historyButton.setOpaque(false);
+        historyButton.setContentAreaFilled(false);
         historyButton.setBorderPainted(false);
         historyButton.setFocusPainted(false);
         historyButton.addActionListener(e -> extras.btnHistoryClick(e));
@@ -714,6 +721,8 @@ public class ScientificCalculator extends JFrame {
         } catch (ArithmeticException e) {
 
             showWarning("Mathematical error: " + e.getMessage());
+            display.setText("NaN");
+            expression = "";
 
         } catch (NumberFormatException e) {
 
