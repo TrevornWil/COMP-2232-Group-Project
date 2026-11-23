@@ -7,11 +7,6 @@ import java.util.ArrayList;
 public class ScientificCalculator extends JFrame {
 
     //CALCULATOR GUI SET UP
-    // true = Rad, false = Deg
-    private boolean radiansMode = true;
-    // false = normal, true = Inv
-    private boolean inverseMode = false;
-
     private JTextField display;
     private Evaluations evaluator;
     private CalculatorExtras extras;
@@ -77,13 +72,22 @@ public class ScientificCalculator extends JFrame {
 
         setVisible(true); //Recheck
     }
-
-    // RETURN THIGNS
-     // true = Rad, false = Deg
-    private boolean radiansMode = true; 
+    // WARNING MESSAGE
+    private void showWarning(String message) {
+        JOptionPane.showMessageDialog(
+            this,
+            message,
+            "Calculator Warning",
+            JOptionPane.WARNING_MESSAGE
+        );
+    }
+    // CALCULATION METHODS/FORMULAS
+    
+    // true = Rad, false = Deg
+    private boolean radiansMode = true;
 
     // false = normal, true = Inv
-    private boolean inverseMode = false; 
+    private boolean inverseMode = false;
 
     public void setRadiansMode(boolean radiansMode) {
         this.radiansMode = radiansMode;
@@ -333,17 +337,16 @@ public class ScientificCalculator extends JFrame {
     }
 
     // HISTORY DIALOG
-    private class HistoryDialog extends JDialog {
+    public class HistoryDialog extends JDialog {
 
         private JLabel lblTitle = new JLabel("History of operations", JLabel.CENTER);
-        private DefaultListModel<String> historyModel = new DefaultListModel<>();
-        private JList<String> lstHistory = new JList<>(historyModel);
+        private DefaultListModel<String> historyModel = new DefaultListModel<String>();
+        private JList<String> lstHistory = new JList<String>(historyModel);
         private JScrollPane scrollHistory = new JScrollPane(lstHistory);
         private JButton btnClearHistory = new JButton("Clear History");
         private JTextField txtDisplay;
 
         public HistoryDialog(JFrame parent, JTextField txtDisplay) {
-
             super(parent, "History", false);
             this.txtDisplay = txtDisplay;
 
@@ -355,9 +358,8 @@ public class ScientificCalculator extends JFrame {
             initEvents();
         }
 
-        // Adds components
-        public void initComponents() {
 
+        public void initComponents() {
             lblTitle.setBounds(10, 10, 225, 25);
             scrollHistory.setBounds(10, 40, 225, 210);
             btnClearHistory.setBounds(10, 260, 225, 35);
@@ -367,42 +369,50 @@ public class ScientificCalculator extends JFrame {
             add(btnClearHistory);
         }
 
-        // Sets events
+
         public void initEvents() {
 
-            btnClearHistory.addActionListener(evt -> { //Check
-
-                int value = JOptionPane.showConfirmDialog( 
-                    this,
-                    "Are you sure you want to clear all history?",
-                    "Clear History",
-                    JOptionPane.YES_NO_OPTION
-                );
-
-                if (value == JOptionPane.YES_OPTION) {
-                    historyModel.clear();
-                }
-            });
-
-            // Double-click an entry to retrieve its answer
-            lstHistory.addMouseListener(new MouseAdapter() {
-
+            btnClearHistory.addActionListener(new ActionListener() {
                 @Override
-                public void mouseClicked(MouseEvent evt) {
-
-                    if (evt.getClickCount() == 2) {
-
-                        String entry = lstHistory.getSelectedValue();
-                        if (entry != null) {
-                            String answer = entry.substring( entry.lastIndexOf('=') + 1).trim();
-                            txtDisplay.setText(answer);
-                        }
-                    }
+                public void actionPerformed(ActionEvent e) {
+                    btnClearHistoryClick(e);
                 }
             });
+
+            lstHistory.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    lstHistoryClick(e);
+                }
+            });
+
         }
 
-        // Adds calculation to history
+
+        private void btnClearHistoryClick(ActionEvent evt) {
+            int value;
+            value = JOptionPane.showConfirmDialog(this,
+                    "Are you sure you want to clear all history?",
+                    "Clear History",
+                    JOptionPane.YES_NO_OPTION);
+            if (value == JOptionPane.YES_OPTION) {
+                historyModel.clear();
+            }
+        }
+
+
+        // double-click an entry to put its answer back on the screen
+        private void lstHistoryClick(MouseEvent evt) {
+            if (evt.getClickCount() == 2) {
+                String entry = lstHistory.getSelectedValue();
+                if (entry != null) {
+                    String answer = entry.substring(entry.lastIndexOf('=') + 1).trim();
+                    txtDisplay.setText(answer);
+                }
+            }
+        }
+
+
         public void addEntry(String entry) {
             historyModel.addElement(entry);
         }
@@ -410,4 +420,290 @@ public class ScientificCalculator extends JFrame {
         public int getEntryCount() {
             return historyModel.getSize();
         }
+
     }
+
+    public class Evaluations {
+
+        public double evaluate(String expression) {
+            expression = expression.replace("x", "*");
+            expression = expression.replace("÷", "/");
+            expression = expression.replace("-", "-");
+
+            ArrayList<String> element = splitIntoElement(expression);
+            return solveWithBrackets(element);
+        }
+
+        private ArrayList<String> splitIntoElement(String expression) {
+            ArrayList<String> element = new ArrayList<String>();
+            String currentNumber = "";
+
+            for (int i = 0; i < expression.length(); i++) {
+                char currentChar = expression.charAt(i);
+
+                boolean isNegativeSign = false;
+                if (currentChar == '-' && currentNumber.equals("")) {
+                    if (element.size() == 0) {
+                        isNegativeSign = true;
+                    } else {
+                        String previousToken = element.get(element.size() - 1);
+                        if (isOperator(previousToken) || previousToken.equals("(")) {
+                            isNegativeSign = true;
+                        }
+                    }
+                }
+
+                if (Character.isDigit(currentChar) || currentChar == '.' || isNegativeSign) {
+                    currentNumber = currentNumber + currentChar;
+                } else {
+                    if (!currentNumber.equals("")) {
+                        element.add(currentNumber);
+                        currentNumber = "";
+                    }
+                    element.add(String.valueOf(currentChar));
+                }
+            }
+
+            if (!currentNumber.equals("")) {
+                element.add(currentNumber);
+            }
+            return element;
+        }
+
+        private boolean isOperator(String token) {
+            return token.equals("+") || token.equals("-") || token.equals("*") || token.equals("/");
+        }
+
+        private double solveWithBrackets(ArrayList<String> element) {
+            while (element.contains("(")) {
+                int openIndex = element.lastIndexOf("(");
+
+                int closeIndex = -1;
+                for (int i = openIndex; i < element.size(); i++) {
+                    if (element.get(i).equals(")")) {
+                        closeIndex = i;
+                        break;
+                    }
+                }
+                if (closeIndex == -1) {
+                    throw new IllegalArgumentException("Missing closing bracket");
+                }
+
+                ArrayList<String> insideBrackets = new ArrayList<String>(element.subList(openIndex + 1, closeIndex));
+                double bracketAnswer = solveWithoutBrackets(insideBrackets);
+
+                for (int i = closeIndex; i >= openIndex; i--) {
+                    element.remove(i);
+                }
+                element.add(openIndex, String.valueOf(bracketAnswer));
+            }
+            return solveWithoutBrackets(element);
+        }
+
+        private double solveWithoutBrackets(ArrayList<String> element) {
+            if (element.size() == 0) {
+                throw new IllegalArgumentException("Empty expression");
+            }
+
+            int position = 0;
+            while (position < element.size()) {
+                String token = element.get(position);
+
+                if (token.equals("*") || token.equals("/")) {
+                    if (position == 0 || position == element.size() - 1) {
+                        throw new IllegalArgumentException("Incomplete expression");
+                    }
+                    double leftNumber = Double.parseDouble(element.get(position - 1));
+                    double rightNumber = Double.parseDouble(element.get(position + 1));
+                    double answer;
+
+                    if (token.equals("*")) {
+                        answer = leftNumber * rightNumber;
+                    } else {
+                        if (rightNumber == 0) {
+                            throw new ArithmeticException("Division by zero");
+                        }
+                        answer = leftNumber / rightNumber;
+                    }
+
+                    element.set(position - 1, String.valueOf(answer));
+                    element.remove(position + 1);
+                    element.remove(position);
+                } else {
+                    position++;
+                }
+            }
+
+            double total = Double.parseDouble(element.get(0));
+            int index = 1;
+            while (index < element.size()) {
+                if (index + 1 >= element.size()) {
+                    throw new IllegalArgumentException("Incomplete expression");
+                }
+                String operator = element.get(index);
+                double nextNumber = Double.parseDouble(element.get(index + 1));
+
+                if (operator.equals("+")) {
+                    total = total + nextNumber;
+                } else if (operator.equals("-")) {
+                    total = total - nextNumber;
+                } else {
+                    throw new IllegalArgumentException("Invalid expression");
+                }
+                index = index + 2;
+            }
+            return total;
+        }
+    }
+
+    // OPERATE CALCULATOR
+    public void buttonClick(String button) {
+
+        try {
+
+            // Angle mode
+            if (button.equals("Rad")) {
+                radiansMode = true;
+                display.setText("Rad Mode");
+                return;
+            }
+
+            if (button.equals("Deg")) {
+                radiansMode = false;
+                display.setText("Deg Mode");
+                return;
+            }
+
+            // Inverse mode
+            if (button.equals("Inv")) {
+                inverseMode = !inverseMode;
+                display.setText(inverseMode ? "Inv Mode" : "Normal Mode");
+                return;
+            }
+
+            // All Clear
+            if (button.equals("AC")) {
+                extras.btnACClick(null);
+                expression = "";
+                return;
+            }
+
+            extras.resetAC();
+
+            // History
+            if (button.equals("History")) {
+                extras.btnHistoryClick(null);
+                return;
+            }
+
+            // Previous answer
+            if (button.equals("Ans")) {
+                extras.btnAnsClick(null);
+                expression = display.getText();
+                return;
+            }
+
+            // Random number
+            if (button.equals("Rnd")) {
+                extras.btnRndClick(null);
+                expression = display.getText();
+                return;
+            }
+
+            // Pi
+            if (button.equals("π")) {
+                expression += String.valueOf(Math.PI);
+                display.setText(expression);
+                return;
+            }
+
+            // Equals button
+            if (button.equals("=")) {
+
+                if (expression.isEmpty()) {
+                    showWarning("Please enter a calculation.");
+                    return;
+                }
+
+                double result = evaluator.evaluate(expression);
+
+                if (Double.isNaN(result) ||
+                    Double.isInfinite(result)) {
+
+                    showWarning("Invalid mathematical result.");
+                    return;
+                }
+
+                String answer = CalculatorExtras.format(result);
+
+                extras.recordCalculation(expression, answer);
+
+                display.setText(answer);
+                expression = answer;
+
+                return;
+            }
+
+            // Unsupported operations
+            if (button.equals("sin") ||
+                button.equals("cos") ||
+                button.equals("tan") ||
+                button.equals("ln") ||
+                button.equals("log") ||
+                button.equals("√") ||
+                button.equals("x²") ||
+                button.equals("%") ||
+                button.equals("EXP")) {
+
+                showWarning(
+                    "This mathematical operation has not yet " +
+                    "been implemented."
+                );
+
+                return;
+            }
+
+            // Numerical and arithmetic buttons
+            if (button.matches("[0-9.]") ||
+                button.equals("+") ||
+                button.equals("−") ||
+                button.equals("×") ||
+                button.equals("÷") ||
+                button.equals("(") ||
+                button.equals(")")) {
+
+                if (button.equals("−")) {
+                    expression += "-";
+                }
+                else if (button.equals("×")) {
+                    expression += "*";
+                }
+                else if (button.equals("÷")) {
+                    expression += "/";
+                }
+                else {
+                    expression += button;
+                }
+
+                display.setText(expression);
+            }
+
+        } catch (ArithmeticException e) {
+
+            showWarning("Mathematical error: " + e.getMessage());
+
+        } catch (NumberFormatException e) {
+
+            showWarning("Please enter a valid numerical expression.");
+
+        } catch (IllegalArgumentException e) {
+
+            showWarning("Invalid calculation: " + e.getMessage());
+
+        } catch (Exception e) {
+
+            showWarning("An unexpected error occurred.");
+        }
+    }
+
+}
